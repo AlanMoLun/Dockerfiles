@@ -22,8 +22,7 @@ RUN wget https://static.tp-link.com/upload/software/2022/202201/20220120/Omada_S
 
 # Install Omada
 RUN tar zxvf Omada_SDN_Controller_v5.0.30_linux_x64.tar.gz
-RUN WORKDIR Omada_SDN_Controller_v5.0.30_linux_x64
-RUN yes | ./install.sh
+RUN cd Omada_SDN_Controller_v5.0.30_linux_x64 && yes | ./install.sh
 
 # Start Omada
 CMD ["tpeap start"]
