@@ -10,19 +10,29 @@ RUN apt-get update && apt-get upgrade -y
 
 #
 # Install dependencies
+RUN apt-get install vim -y
 RUN apt-get install openjdk-8-jdk -y
 RUN apt-get install wget curl jsvc -y
 
+#
 # Install mongoDB
 RUN apt install -y software-properties-common gnupg apt-transport-https ca-certificates
 RUN apt install -y mongodb
 
+#
 # Get the Omada install pkg (downloaded in the same directory of Dockerfile)
-RUN wget https://static.tp-link.com/upload/software/2022/202201/20220120/Omada_SDN_Controller_v5.0.30_linux_x64.tar.gz
+RUN wget https://static.tp-link.com/upload/software/2022/202207/20220729/Omada_SDN_Controller_v5.4.6_Linux_x64.tar.gz
 
+#
 # Install Omada
-RUN tar zxvf Omada_SDN_Controller_v5.0.30_linux_x64.tar.gz
-RUN cd Omada_SDN_Controller_v5.0.30_linux_x64 && yes | ./install.sh
+RUN tar zxvf Omada_SDN_Controller_v5.4.6_Linux_x64.tar.gz
+RUN cd Omada_SDN_Controller_v5.4.6_Linux_x64 && yes | ./install.sh
+
+# Make entrypoint for docker run
+RUN echo "#!/bin/bash" >> /docker-entrypoint.sh
+RUN echo "/usr/bin/tpeap start" >> /docker-entrypoint.sh
+RUN echo "tail -f /dev/null" >> /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 # Start Omada
-CMD ["tpeap start"]
+CMD ["/docker-entrypoint.sh"]
