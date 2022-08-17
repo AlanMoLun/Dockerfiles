@@ -9,6 +9,12 @@ ADD ubuntu-focal-oci-amd64-root.tar.gz /
 RUN apt-get update && apt-get upgrade -y
 
 #
+# Install basic tools
+RUN apt-get install iputils-ping -y
+RUN apt-get install net-tools -y
+# RUN apt-get install samba -y
+
+#
 # Install dependencies
 RUN apt-get install vim -y
 RUN apt-get install openjdk-8-jdk -y
