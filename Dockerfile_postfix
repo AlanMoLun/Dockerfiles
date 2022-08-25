@@ -28,6 +28,7 @@ COPY mailname /etc/mailname
 # Make entrypoint for docker run
 RUN echo "#!/bin/bash" >> /docker-entrypoint.sh
 RUN echo "postfix start" >> /docker-entrypoint.sh
+RUN echo "service nmbd start" >> /docker-entrypoint.sh
 RUN echo "tail -f /dev/null" >> /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
