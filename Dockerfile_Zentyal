@@ -1,0 +1,125 @@
+#FROM ubuntu:20.04
+FROM scratch
+ADD ubuntu-focal-oci-amd64-root.tar.gz /
+#ADD pkgs/ubuntu-bionic-oci-amd64-root.tar.gz /
+
+# Update the image to the latest packages
+RUN apt-get update && apt-get upgrade -y
+
+# Install basic tools
+RUN apt-get install iputils-ping -y
+RUN apt-get install net-tools -y
+RUN apt-get install samba -y
+RUN apt-get install vim -y
+RUN apt-get install wget curl -y
+RUN apt-get install openssh-client -y
+RUN apt-get install telnet -y
+RUN apt-get install postfix -y
+
+# Copy configuration files
+#COPY valiases.cf /etc/postfix/
+#COPY useraliases.cf /etc/postfix/
+#COPY groupaliases.cf /etc/postfix/
+#COPY mailbox.cf /etc/postfix/
+#COPY vdomains.cf /etc/postfix/
+#COPY login.cf /etc/postfix/
+#COPY mailname /etc/mailname
+#COPY transfer /etc/postfix/
+
+#Import its public key
+RUN wget -q http://keys.zentyal.org/zentyal-5.0-archive.asc -O- | apt-key add -
+
+#Add to repository
+RUN echo "deb http://de.archive.ubuntu.com/ubuntu trusty main universe" >> /etc/apt/sources.list
+RUN echo "deb http://de.archive.ubuntu.com/ubuntu trusty-updates main universe" >> /etc/apt/sources.list
+RUN echo "deb http://de.archive.ubuntu.com/ubuntu trusty-security main universe" >> /etc/apt/sources.list
+RUN echo "deb http://archive.zentyal.org/zentyal/ 6.0 main extra" >> /etc/apt/sources.list
+RUN echo "deb https://dev.mysql.com/get/ trusty main universe" >> /etc/apt/sources.list
+RUN apt-get update -y
+
+#Installing basic and build dependencies
+RUN apt-get install -y --force-yes git sudo libapache2-mod-perl2 libtap-formatter-junit-perl build-essential devscripts zbuildtools apt-utils tzdata
+#RUN apt-get install -y redis mysql-server-5.7
+RUN apt-get install -y redis
+
+# ADD zentyal-syntax-check and zentyal-unit-tests
+ADD scripts/zentyal-syntax-check /tmp/zentyal-syntax-check
+ADD scripts/zentyal-unit-tests /tmp/zentyal-unit-tests
+
+#ADD conf files for check and unit tests
+ADD scripts/zentyal.conf /tmp/zentyal/main/common/conf/zentyal.conf
+ADD scripts/eboxlog.conf /tmp/zentyal/main/common/extra/eboxlog.conf
+
+#ADD control files to check the dependencies
+ADD  zentyal/main/firewall/debian/control /tmp/zentyal/main/firewall/debian/control
+ADD  zentyal/main/mailfilter/debian/control /tmp/zentyal/main/mailfilter/debian/control
+# ADD  zentyal/main/services/debian/control /tmp/zentyal/main/services/debian/control
+ADD  zentyal/main/antivirus/debian/control /tmp/zentyal/main/antivirus/debian/control
+ADD  zentyal/main/ntp/debian/control /tmp/zentyal/main/ntp/debian/control
+ADD  zentyal/main/dhcp/debian/control /tmp/zentyal/main/dhcp/debian/control
+ADD  zentyal/main/software/debian/control /tmp/zentyal/main/software/debian/control
+#ADD  zentyal/main/objects/debian/control /tmp/zentyal/main/objects/debian/control
+ADD  zentyal/main/mail/debian/control /tmp/zentyal/main/mail/debian/control
+#ADD  zentyal/main/openchange/debian/control /tmp/zentyal/main/openchange/debian/control
+ADD  zentyal/main/core/debian/control /tmp/zentyal/main/core/debian/control
+ADD  zentyal/main/openvpn/debian/control /tmp/zentyal/main/openvpn/debian/control
+ADD  zentyal/main/samba/debian/control /tmp/zentyal/main/samba/debian/control
+ADD  zentyal/main/dns/debian/control /tmp/zentyal/main/dns/debian/control
+ADD  zentyal/main/ca/debian/control /tmp/zentyal/main/ca/debian/control
+ADD  zentyal/contrib/printers/debian/control /tmp/zentyal/main/printers/debian/control
+# ADD  zentyal/main/common/debian/control /tmp/zentyal/main/common/debian/control
+ADD  zentyal/main/network/debian/control /tmp/zentyal/main/network/debian/control
+
+#Install the zentyal deps
+RUN apt-get update -y
+RUN /tmp/zentyal-syntax-check --installdeps --path=/tmp  --release=precise
+RUN /tmp/zentyal-unit-tests nothing || /bin/true
+
+#Add the user that will run the unit tests
+RUN useradd -m -p 12CsGd8FRcMSM testUser
+RUN echo 'testUser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+# Give special permissions to some files
+RUN mkdir -p /run/shm/zentyal
+RUN chmod 777 /run/shm/zentyal
+RUN chmod 4755 /usr/bin/sudo
+
+# Configure timezoen so the tests get the date expected
+#RUN echo "America/Vancouver" > /etc/timezone
+RUN DEBIAN_FRONTEND=noninteractive TZ=America/Vancouver apt-get -y install tzdata
+RUN ln -fs /usr/share/zoneinfo/America/Vancouver /etc/localtime
+RUN  dpkg-reconfigure -f noninteractive tzdata
+
+# Adding empty folder for the repo to be linked
+VOLUME ["/zentyal-repo"]
+
+# In order mysql start without any warning, following lines are needed, don't know why
+RUN mkdir /nonexistent
+RUN chown mysql:mysql /nonexistent
+RUN chmod 777 /nonexistent/
+
+# In order zentyal to connect mysql 
+RUN chmod 777 /var/run/mysqld/
+
+# Make entrypoint for docker run
+RUN echo "#!/bin/bash" >> /docker-entrypoint.sh
+RUN echo "redis-server /etc/redis/redis.conf" >> /docker-entrypoint.sh
+#RUN echo "service mysql start" >> /docker-entrypoint.sh
+RUN echo "tail -f /dev/null" >> /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+# Start docker container
+CMD ["/docker-entrypoint.sh"]
+
+
+
+
+
+
+
+
+
+
+
+
+
